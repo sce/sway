@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <string.h>
 #include <strings.h>
 #include <ctype.h>
@@ -371,3 +372,63 @@ char *strdup(const char *str) {
 	return dup;
 }
 
+// Compare given data with given format while ignoring percentage signs. If
+// they match, returns data at percentage sign location in data array.
+//
+// If a number trails behind any percentage sign it is assumed to be the length
+// of the next trailing char*[] array, and this function will make sure data extracted
+// matches one of the elements in that corresponding array.
+//
+// Returns NULL if not successful.
+//
+// In other words, a convenient way to verify string syntax and extract data at
+// the same time.
+//
+//   reverse_sprintf(argc, argv, "move %");
+//   reverse_sprintf(argc, argv, "move % to % %");
+//   reverse_sprintf(argc, argv, "move % to workspace number %");
+//
+//   reverse_sprintf(argc, argv, "move %4", (const char*[]){ "left", "right", "up", "down" });
+//   reverse_sprintf(argc, argv, "move %2 to %2 %",
+//       (const char*[]){ "container", "window" },
+//       (const char*[]){ "workspace", "output" }); // last argument is not checked
+//
+char **reverse_sprintf(int argc, char** argv, const char *format, ...) {
+	list_t *format_args = split_string(format, " ");
+	if (format_args->length != argc) {
+		free_flat_list(format_args);
+		return NULL;
+	}
+	va_list args;
+	va_start(args, format);
+	char **extracted = calloc(argc, sizeof(char*));
+	int found = 0;
+	for(int i=0; i<format_args->length; i++) {
+		char *token = (char*)format_args->items[i];
+		if (*token == '%') {
+			extracted[found++] = token;
+			int candidates = atoi(token+1);
+			if (candidates > 0) {
+				bool verified = false;
+				const char **filter = va_arg(args, char**);
+				for(int i=0; i<candidates; i++) {
+					if (strcmp(token, filter[i]) == 0) {
+						verified = true;
+						break;
+					}
+				}
+				if (!verified) {
+					goto rev_spf_failed;
+				}
+			}
+		} else if (strcmp(token, argv[i]) != 0) {
+			goto rev_spf_failed;
+		}
+	}
+	va_end(args);
+	return extracted;
+rev_spf_failed:
+	va_end(args);
+	free(extracted);
+	return NULL;
+}

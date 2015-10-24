@@ -34,4 +34,6 @@ char *cmdsep(char **stringp, const char *delim);
 char *argsep(char **stringp, const char *delim);
 
 char *strdup(const char *);
+
+char **reverse_sprintf(int argc, char** argv, const char *format, ...);
 #endif

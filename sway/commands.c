@@ -521,38 +521,27 @@ static struct cmd_results *cmd_move(int argc, char **argv) {
 		"'move <container|window> to workspace <name>'";
 	swayc_t *view = get_focused_container(&root_container);
 
-	if (strcasecmp(argv[0], "left") == 0) {
-		move_container(view, MOVE_LEFT);
-	} else if (strcasecmp(argv[0], "right") == 0) {
-		move_container(view, MOVE_RIGHT);
-	} else if (strcasecmp(argv[0], "up") == 0) {
-		move_container(view, MOVE_UP);
-	} else if (strcasecmp(argv[0], "down") == 0) {
-		move_container(view, MOVE_DOWN);
-	} else if (strcasecmp(argv[0], "container") == 0 || strcasecmp(argv[0], "window") == 0) {
-		// "move container ...
-		if ((error = checkarg(argc, "move container/window", EXPECTED_AT_LEAST, 4))) {
-			return error;
-		} else if ( strcasecmp(argv[1], "to") == 0 && strcasecmp(argv[2], "workspace") == 0) {
-			// move container to workspace x
-			if (view->type != C_CONTAINER && view->type != C_VIEW) {
-				return cmd_results_new(CMD_FAILURE, "move", "Can only move containers and views.");
-			}
-
-			const char *ws_name = argv[3];
-			if (argc == 5) {
-				// move "container to workspace number x"
-				ws_name = argv[4];
-			}
-
-			swayc_t *ws = workspace_by_name(ws_name);
-			if (ws == NULL) {
-				ws = workspace_create(ws_name);
-			}
-			move_container_to(view, get_focused_container(ws));
-		} else {
-			return cmd_results_new(CMD_INVALID, "move", expected_syntax);
+	char **tokens = NULL;
+	if ((tokens = reverse_sprintf(argc, argv, "move %4",
+					(const char*[]){ "left", "right", "up", "down" }))) {
+		move_container(view, get_movement_direction(*tokens));
+	} else if ((tokens = reverse_sprintf(argc, argv, "move %2 to workspace %",
+					(const char*[]){ "container", "window" }))) {
+		if (view->type != C_CONTAINER && view->type != C_VIEW) {
+			return cmd_results_new(CMD_FAILURE, "move", "Can only move containers and views.");
 		}
+
+		const char *ws_name = argv[3];
+		if (argc == 5) {
+			// move "container to workspace number x"
+			ws_name = argv[4];
+		}
+
+		swayc_t *ws = workspace_by_name(ws_name);
+		if (ws == NULL) {
+			ws = workspace_create(ws_name);
+		}
+		move_container_to(view, get_focused_container(ws));
 	} else if (strcasecmp(argv[0], "scratchpad") == 0) {
 		// move scratchpad ...
 		if (view->type != C_CONTAINER && view->type != C_VIEW) {
@@ -592,6 +581,7 @@ static struct cmd_results *cmd_orientation(int argc, char **argv) {
 	if ((error = checkarg(argc, "orientation", EXPECTED_EQUAL_TO, 1))) {
 		return error;
 	}
+	//char** tokens = reverse_sprintf(argc, argv, "orientation %3", (const char*[]){"horizontal", "vertical", "auto"});
 	if (strcasecmp(argv[0], "horizontal") == 0) {
 		config->default_orientation = L_HORIZ;
 	} else if (strcasecmp(argv[0], "vertical") == 0) {
