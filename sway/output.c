@@ -92,8 +92,9 @@ swayc_t *swayc_adjacent_output(swayc_t *output, enum movement_direction dir) {
 
 void refresh_output(swayc_t *output) {
 	if (output->type == C_VIEW && output->handle) {
-		swayc_log(L_DEBUG, output, "wlc_view_set_state");
+		swayc_log(L_DEBUG, output, "wlc_view_set_state was: %lu", wlc_view_get_state(output->handle));
 		wlc_view_set_state(output->handle, WLC_BIT_ACTIVATED, true);
+		swayc_log(L_DEBUG, output, "wlc_view_set_state became: %lu", wlc_view_get_state(output->handle));
 	}
 
 	if (output->children) {
