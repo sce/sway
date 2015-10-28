@@ -123,5 +123,6 @@ void set_gaps(swayc_t *view, void *amount);
 void add_gaps(swayc_t *view, void *amount);
 
 void update_visibility(swayc_t *container);
+void refresh_view(swayc_t *container);
 
 #endif

@@ -36,8 +36,7 @@ static bool handle_output_created(wlc_handle output) {
 		return false;
 	}
 
-	// hmm... doesn't work after tty switch ...
-	refresh_output(op);
+	refresh_view(op);
 
 	// Switch to workspace if we need to
 	if (swayc_active_workspace() == NULL) {

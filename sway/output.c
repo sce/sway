@@ -89,21 +89,3 @@ swayc_t *swayc_adjacent_output(swayc_t *output, enum movement_direction dir) {
 	}
 	return adjacent;
 }
-
-void refresh_output(swayc_t *container) {
-	swayc_log(L_DEBUG, container, "refresh_output");
-	if (container->type == C_VIEW && container->handle) {
-		wlc_view_update_from_handle(container->handle);
-	}
-
-	if (container->children) {
-		for(int i=0; i<container->children->length; i++) {
-			refresh_output(container->children->items[i]);
-		}
-	}
-	if (container->floating) {
-		for(int i=0; i<container->floating->length; i++) {
-			refresh_output(container->floating->items[i]);
-		}
-	}
-}

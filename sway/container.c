@@ -717,3 +717,19 @@ void add_gaps(swayc_t *view, void *_data) {
 		}
 	}
 }
+
+void refresh_view(swayc_t *container) {
+	if (container->type == C_VIEW && container->handle) {
+		wlc_view_set_state(container->handle, WLC_BIT_ACTIVATED, true);
+	}
+	if (container->children) {
+		for(int i = 0; i < container->children->length; i++) {
+			refresh_view(container->children->items[i]);
+		}
+	}
+	if (container->floating) {
+		for(int i = 0; i < container->floating->length; i++) {
+			refresh_view(container->floating->items[i]);
+		}
+	}
+}

@@ -339,8 +339,6 @@ void move_workspace_to(swayc_t* workspace, swayc_t* destination) {
 	}
 	set_focused_container(get_focused_view(src_op));
 	update_visibility(src_op);
-
-	refresh_output(destination);
 }
 
 void update_geometry(swayc_t *container) {
@@ -371,7 +369,6 @@ void update_geometry(swayc_t *container) {
 		}
 	}
 	wlc_view_set_geometry(container->handle, 0, &geometry);
-	refresh_output(container);
 	return;
 }
 
