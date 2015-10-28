@@ -90,21 +90,20 @@ swayc_t *swayc_adjacent_output(swayc_t *output, enum movement_direction dir) {
 	return adjacent;
 }
 
-void refresh_output(swayc_t *output) {
-	if (output->type == C_VIEW && output->handle) {
-		swayc_log(L_DEBUG, output, "wlc_view_set_state was: %lu", wlc_view_get_state(output->handle));
-		wlc_view_set_state(output->handle, WLC_BIT_ACTIVATED, true);
-		swayc_log(L_DEBUG, output, "wlc_view_set_state became: %lu", wlc_view_get_state(output->handle));
+void refresh_output(swayc_t *container) {
+	swayc_log(L_DEBUG, container, "refresh_output");
+	if (container->type == C_VIEW && container->handle) {
+		wlc_view_update_from_handle(container->handle);
 	}
 
-	if (output->children) {
-		for(int i=0; i<output->children->length; i++) {
-			refresh_output(output->children->items[i]);
+	if (container->children) {
+		for(int i=0; i<container->children->length; i++) {
+			refresh_output(container->children->items[i]);
 		}
 	}
-	if (output->floating) {
-		for(int i=0; i<output->floating->length; i++) {
-			refresh_output(output->floating->items[i]);
+	if (container->floating) {
+		for(int i=0; i<container->floating->length; i++) {
+			refresh_output(container->floating->items[i]);
 		}
 	}
 }

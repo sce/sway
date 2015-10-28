@@ -371,6 +371,7 @@ void update_geometry(swayc_t *container) {
 		}
 	}
 	wlc_view_set_geometry(container->handle, 0, &geometry);
+	refresh_output(container);
 	return;
 }
 
