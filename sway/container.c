@@ -720,7 +720,8 @@ void add_gaps(swayc_t *view, void *_data) {
 
 void refresh_view(swayc_t *container) {
 	if (container->type == C_VIEW && container->handle) {
-		wlc_view_set_state(container->handle, WLC_BIT_ACTIVATED, true);
+		//wlc_view_set_state(container->handle, WLC_BIT_ACTIVATED, true);
+		wlc_touch_view_from_handle(container->handle);
 	}
 	if (container->children) {
 		for(int i = 0; i < container->children->length; i++) {
