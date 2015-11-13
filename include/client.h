@@ -31,7 +31,7 @@ struct client_state {
     struct wl_shell_surface *shell_surface;
     struct wl_callback *frame_cb;
     bool busy;
-    cairo_t *cairo;
+    //cairo_t *cairo;
     cairo_surface_t *cairo_surface;
     PangoContext *pango;
     list_t *outputs;

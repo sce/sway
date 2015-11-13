@@ -15,6 +15,7 @@ static void display_handle_mode(void *data, struct wl_output *wl_output,
 		     uint32_t flags, int32_t width, int32_t height, int32_t refresh) {
 	struct output_state *state = data;
 	if (flags & WL_OUTPUT_MODE_CURRENT) {
+		sway_log(L_DEBUG, "Display mode, setting %ix%i size", width, height);
 		state->flags = flags;
 		state->width = width;
 		state->height = height;
@@ -115,35 +116,48 @@ static const struct wl_buffer_listener buffer_listener = {
 
 struct buffer *create_buffer(struct client_state *state,
 		int32_t width, int32_t height, uint32_t format) {
-
+	// allocate memory
 	struct buffer *buf = malloc(sizeof(struct buffer));
 	memset(buf, 0, sizeof(struct buffer));
+
+	// create memory map
 	uint32_t stride = width * 4;
 	uint32_t size = stride * height;
-
 	int fd = create_pool_file(size);
 	void *data = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+	// cairo surface from memory map
+	state->cairo_surface = cairo_image_surface_create_for_data(data, CAIRO_FORMAT_ARGB32, width, height, stride);
+
+	// wayland buffer from shared memory pool
 	buf->pool = wl_shm_create_pool(state->shm, fd, size);
 	buf->buffer = wl_shm_pool_create_buffer(buf->pool, 0, width, height, stride, format);
+
+	// cleanup
 	wl_shm_pool_destroy(buf->pool);
 	close(fd);
 	fd = -1;
 
-	state->cairo_surface = cairo_image_surface_create_for_data(data, CAIRO_FORMAT_ARGB32, width, height, stride);
-	state->cairo = cairo_create(state->cairo_surface);
-	state->pango = pango_cairo_create_context(state->cairo);
+	//state->pango = pango_cairo_create_context(state->cairo);
 
 	wl_buffer_add_listener(buf->buffer, &buffer_listener, state);
 
-	sway_log(L_INFO, "%p %p", buf->pool, buf->buffer);
+	sway_log(L_INFO, "pool, buffer: %p %p", buf->pool, buf->buffer);
 	return buf;
 }
 
+static const struct wl_callback_listener listener;
+
 static void frame_callback(void *data, struct wl_callback *callback, uint32_t time) {
-	sway_log(L_INFO, "frame callback");
-	struct client_state *state = data;
 	wl_callback_destroy(callback);
+	struct client_state *state = data;
 	state->frame_cb = NULL;
+
+	// set callback for next frame
+	state->frame_cb = wl_surface_frame(state->surface);
+	wl_callback_add_listener(state->frame_cb, &listener, state);
+
+	client_render(state);
 }
 
 static const struct wl_callback_listener listener = {
@@ -169,31 +183,47 @@ struct client_state *client_setup(void) {
 	wl_registry_destroy(registry);
 
 	state->buffer = create_buffer(state, 100, 100, WL_SHM_FORMAT_ARGB8888);
+
 	state->surface = wl_compositor_create_surface(state->compositor);
 	state->shell_surface = wl_shell_get_shell_surface(state->shell, state->surface);
 	wl_shell_surface_set_toplevel(state->shell_surface);
 
 	wl_surface_damage(state->surface, 0, 0, 100, 100);
 
+	// setup first callback (will then chain itself)
+	state->frame_cb = wl_surface_frame(state->surface);
+	wl_callback_add_listener(state->frame_cb, &listener, state);
+
 	return state;
 }
 
 int client_render(struct client_state *state) {
-	if (state->frame_cb || state->busy) {
-		return 2;
-	}
-	sway_log(L_INFO, "Rendering");
-
-	state->frame_cb = wl_surface_frame(state->surface);
-	wl_callback_add_listener(state->frame_cb, &listener, state);
-
-	wl_surface_damage(state->surface, 0, 0, state->buffer->width, state->buffer->height);
-	wl_surface_attach(state->surface, state->buffer->buffer, 0, 0);
-	wl_surface_commit(state->surface);
-
 	state->busy = true;
 
-	return wl_display_dispatch(state->display) != -1;
+	static uint8_t r = 0, g = 33, b = 66;
+	if (++r >= 100) r = 0; if (++g >= 100) g = 0; if (++b >= 100) b = 0;
+
+	cairo_t *cr = cairo_create(state->cairo_surface);
+
+	cairo_set_source_rgb(cr, (double)r/100, (double)g/100, (double)b/100);
+	cairo_paint(cr);
+
+	cairo_select_font_face (cr, "serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size (cr, 30.0);
+	cairo_set_source_rgb (cr, 0.5, 0.5, 1.0);
+	cairo_move_to (cr, 2.0, 55.0);
+	cairo_show_text (cr, "swaybg");
+
+	cairo_destroy(cr);
+	//cairo_surface_write_to_png(state->cairo_surface, "surface.png");
+
+	// wayland
+	wl_surface_attach(state->surface, state->buffer->buffer, 0, 0);
+	wl_surface_damage(state->surface, 0, 0, state->buffer->width, state->buffer->height);
+	wl_surface_commit(state->surface);
+
+	//return wl_display_dispatch(state->display) != -1;
+	return 0;
 }
 
 void client_teardown(struct client_state *state) {

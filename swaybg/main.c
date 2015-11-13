@@ -18,31 +18,11 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	uint8_t r = 0, g = 0, b = 0;
+	client_render(state);
 
-	long last_ms = 0;
-	int rs;
+	int rs = 0;
 	do {
-		struct timespec spec;
-		clock_gettime(CLOCK_MONOTONIC, &spec);
-		long ms = round(spec.tv_nsec / 1.0e6);
-
-		cairo_set_source_rgb(state->cairo, r, g, b);
-		cairo_rectangle(state->cairo, 0, 0, 100, 100);
-		cairo_fill(state->cairo);
-
-		rs = client_render(state);
-
-		if (ms - last_ms > 100) {
-			r++;
-			if (r == 0) {
-				g++;
-				if (g == 0) {
-					b++;
-				}
-			}
-			ms = last_ms;
-		}
+		rs = wl_display_dispatch(state->display);
 	} while (rs);
 
 	client_teardown(state);
