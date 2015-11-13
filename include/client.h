@@ -43,4 +43,6 @@ struct buffer *create_memory_pool(struct client_state *state, int32_t width, int
 int client_prerender(struct client_state *state);
 int client_render(struct client_state *state);
 
+void frame_callback(void *data, struct wl_callback *callback, uint32_t time);
+
 #endif

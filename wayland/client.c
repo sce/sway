@@ -136,16 +136,16 @@ struct buffer *create_buffer(struct client_state *state,
 	return buf;
 }
 
-static void frame_callback(void *data, struct wl_callback *callback, uint32_t time) {
+void frame_callback(void *data, struct wl_callback *callback, uint32_t time) {
 	sway_log(L_INFO, "frame callback");
 	struct client_state *state = data;
 	wl_callback_destroy(callback);
 	state->frame_cb = NULL;
 }
 
-static const struct wl_callback_listener listener = {
-	frame_callback
-};
+// static const struct wl_callback_listener listener = {
+// 	frame_callback
+// };
 
 struct client_state *client_setup(void) {
 	struct client_state *state = malloc(sizeof(struct client_state));
@@ -182,11 +182,11 @@ int client_prerender(struct client_state *state) {
 }
 
 int client_render(struct client_state *state) {
-	if (state->frame_cb) {
-		return 2;
-	}
-	state->frame_cb = wl_surface_frame(state->surface);
-	wl_callback_add_listener(state->frame_cb, &listener, state);
+	// if (state->frame_cb) {
+	// 	return 2;
+	// }
+	//state->frame_cb = wl_surface_frame(state->surface);
+	//wl_callback_add_listener(state->frame_cb, &listener, state);
 	wl_surface_damage(state->surface, 0, 0, 100, 100);
 	wl_surface_attach(state->surface, state->buffer->buffer, 0, 0);
 	wl_surface_commit(state->surface);

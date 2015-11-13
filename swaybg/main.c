@@ -11,6 +11,10 @@ void sway_terminate(void) {
 	exit(1);
 }
 
+const struct wl_callback_listener listener = {
+	frame_callback
+};
+
 int main(int argc, char **argv) {
 	init_log(L_INFO);
 	state = client_setup();
@@ -20,6 +24,10 @@ int main(int argc, char **argv) {
 	int rs;
 	do {
 		if (!client_prerender(state)) continue;
+
+		state->frame_cb = wl_surface_frame(state->surface);
+		wl_callback_add_listener(state->frame_cb, &listener, state);
+
 		cairo_set_source_rgb(state->cairo, r, g, b);
 		cairo_rectangle(state->cairo, 0, 0, 100, 100);
 		cairo_fill(state->cairo);
