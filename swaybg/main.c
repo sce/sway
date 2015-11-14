@@ -18,12 +18,10 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	client_render(state);
-
 	int rs = 0;
 	do {
 		rs = wl_display_dispatch(state->display);
-	} while (rs);
+	} while (rs != -1);
 
 	client_teardown(state);
 	return 0;

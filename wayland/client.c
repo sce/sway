@@ -188,11 +188,11 @@ struct client_state *client_setup(void) {
 	state->shell_surface = wl_shell_get_shell_surface(state->shell, state->surface);
 	wl_shell_surface_set_toplevel(state->shell_surface);
 
-	wl_surface_damage(state->surface, 0, 0, 100, 100);
-
 	// setup first callback (will then chain itself)
 	state->frame_cb = wl_surface_frame(state->surface);
 	wl_callback_add_listener(state->frame_cb, &listener, state);
+
+	client_render(state);
 
 	return state;
 }
