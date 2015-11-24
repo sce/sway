@@ -325,6 +325,9 @@ char *cmdsep(char **stringp, const char *delim) {
 	return head;
 }
 
+// Returns pointer to start of next argument found in stringp. stringp is set
+// to start of next data (after any "delim" characters) or NULL if end of
+// string.
 char *argsep(char **stringp, const char *delim) {
 	char *start = *stringp;
 	char *end = start;
