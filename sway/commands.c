@@ -168,7 +168,7 @@ static struct cmd_results *cmd_bindsym(int argc, char **argv) {
 		if (!sym) {
 			error = cmd_results_new(CMD_INVALID, "bindsym", "Unknown key '%s'", (char *)split->items[i]);
 			free_sway_binding(binding);
-			list_free(split);
+			free_flat_list(split);
 			return error;
 		}
 		xkb_keysym_t *key = malloc(sizeof(xkb_keysym_t));
