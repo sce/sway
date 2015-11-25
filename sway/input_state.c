@@ -274,6 +274,42 @@ void pointer_mode_set(uint32_t button, bool condition) {
 	}
 }
 
+// if a fenced float is being moved or resized outside the output it will stop
+// at the edge, but the pointer will of course continue moving, so we need to
+// update/move the origin of the pointer mode too.
+enum pointer_mode_moves {
+	PMM_X_AXIS = 1,
+	PMM_Y_AXIS = 2,
+	PMM_DRAG = 4,
+	PMM_RESIZE = 8
+};
+
+static void pointer_mode_move(struct wlc_point *origin, unsigned int reset) {
+	switch(reset) {
+	case PMM_DRAG | PMM_X_AXIS:
+		initial.x = initial.ptr->x;
+		pointer_state.left.x = origin->x;
+		break;
+	case PMM_DRAG | PMM_Y_AXIS:
+		initial.y = initial.ptr->y;
+		pointer_state.left.y = origin->y;
+		break;
+	case PMM_RESIZE | PMM_X_AXIS:
+		initial.x = initial.ptr->x;
+		initial.w = initial.ptr->width;
+		pointer_state.right.x = origin->x;
+		break;
+	case PMM_RESIZE | PMM_Y_AXIS:
+		initial.y = initial.ptr->y;
+		initial.h = initial.ptr->height;
+		pointer_state.right.y = origin->y;
+		break;
+	default:
+		sway_assert(false, "Got invalid pointer_mode_move: %u", reset);
+		break;
+	}
+}
+
 void pointer_mode_update(void) {
 	if (initial.ptr->type != C_VIEW) {
 		pointer_state.mode = 0;
@@ -283,6 +319,8 @@ void pointer_mode_update(void) {
 	wlc_pointer_get_position(&origin);
 	int dx = origin.x;
 	int dy = origin.y;
+	swayc_t *output = swayc_active_output();
+	enum fence_modes fence_mode = swayc_fence_mode(initial.ptr);
 
 	switch (pointer_state.mode) {
 	case M_FLOATING | M_DRAGGING:
@@ -290,10 +328,28 @@ void pointer_mode_update(void) {
 		dx -= pointer_state.left.x;
 		dy -= pointer_state.left.y;
 		if (initial.x + dx != initial.ptr->x) {
-			initial.ptr->x = initial.x + dx;
+			int new_x = initial.x + dx;
+			if (fence_mode > FENCE_NONE && new_x < 0) {
+				initial.ptr->x = 0;
+				pointer_mode_move(&origin, PMM_DRAG | PMM_X_AXIS);
+			} else if (fence_mode > FENCE_NONE && new_x + initial.w > output->width) {
+				initial.ptr->x = output->width - initial.w;
+				pointer_mode_move(&origin, PMM_DRAG | PMM_X_AXIS);
+			} else {
+				initial.ptr->x = new_x;
+			}
 		}
 		if (initial.y + dy != initial.ptr->y) {
-			initial.ptr->y = initial.y + dy;
+			int new_y = initial.y + dy;
+			if (fence_mode > FENCE_NONE && new_y < 0) {
+				initial.ptr->y = 0;
+				pointer_mode_move(&origin, PMM_DRAG | PMM_Y_AXIS);
+			} else if (fence_mode > FENCE_NONE && new_y + initial.h > output->height) {
+				initial.ptr->y = output->height - initial.h;
+				pointer_mode_move(&origin, PMM_DRAG | PMM_Y_AXIS);
+			} else {
+				initial.ptr->y = new_y;
+			}
 		}
 		update_geometry(initial.ptr);
 		break;
@@ -304,22 +360,54 @@ void pointer_mode_update(void) {
 		initial.ptr = pointer_state.right.view;
 		if (lock.left) {
 			if (initial.w + dx > min_sane_w) {
-				initial.ptr->width = initial.w + dx;
+				int new_w = initial.w + dx;
+				if (fence_mode > FENCE_NONE && initial.x + new_w > output->width) {
+					// max width
+					initial.ptr->width = output->width - initial.x;
+					pointer_mode_move(&origin, PMM_RESIZE | PMM_X_AXIS);
+				} else {
+					initial.ptr->width = new_w;
+				}
 			}
 		} else { // lock.right
 			if (initial.w - dx > min_sane_w) {
-				initial.ptr->width = initial.w - dx;
-				initial.ptr->x = initial.x + dx;
+				int new_x = initial.x + dx;
+				int new_w = initial.w - dx;
+				if (fence_mode > FENCE_NONE && new_x < 0) {
+					// fill from output edge
+					initial.ptr->x = 0;
+					initial.ptr->width = initial.x + initial.w;
+					pointer_mode_move(&origin, PMM_RESIZE | PMM_X_AXIS);
+				} else {
+					initial.ptr->x = new_x;
+					initial.ptr->width = new_w;
+				}
 			}
 		}
 		if (lock.top) {
 			if (initial.h + dy > min_sane_h) {
-				initial.ptr->height = initial.h + dy;
+				int new_h = initial.h + dy;
+				if (fence_mode > FENCE_NONE && initial.y + new_h > output->height) {
+					// max height
+					initial.ptr->height = output->height - initial.y;
+					pointer_mode_move(&origin, PMM_RESIZE | PMM_Y_AXIS);
+				} else {
+					initial.ptr->height = new_h;
+				}
 			}
 		} else { // lock.bottom
 			if (initial.h - dy > min_sane_h) {
-				initial.ptr->height = initial.h - dy;
-				initial.ptr->y = initial.y + dy;
+				int new_h = initial.h - dy;
+				int new_y = initial.y + dy;
+				if (fence_mode > FENCE_NONE && new_y < 0) {
+					// fill from output edge
+					initial.ptr->y = 0;
+					initial.ptr->height = initial.y + initial.h;
+					pointer_mode_move(&origin, PMM_RESIZE | PMM_Y_AXIS);
+				} else {
+					initial.ptr->y = new_y;
+					initial.ptr->height = new_h;
+				}
 			}
 		}
 		update_geometry(initial.ptr);

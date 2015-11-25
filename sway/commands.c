@@ -37,6 +37,7 @@ static sway_cmd cmd_debuglog;
 static sway_cmd cmd_exec;
 static sway_cmd cmd_exec_always;
 static sway_cmd cmd_exit;
+static sway_cmd cmd_fenced;
 static sway_cmd cmd_floating;
 static sway_cmd cmd_floating_mod;
 static sway_cmd cmd_focus;
@@ -298,6 +299,66 @@ static struct cmd_results *cmd_exit(int argc, char **argv) {
 	// Close all views
 	container_map(&root_container, kill_views, NULL);
 	sway_terminate();
+	return cmd_results_new(CMD_SUCCESS, NULL, NULL);
+}
+
+static struct cmd_results *cmd_fenced(int argc, char **argv) {
+	struct cmd_results *error = NULL;
+	if ((error = checkarg(argc, "fenced", EXPECTED_AT_LEAST, 3))) {
+		return error;
+	}
+	const char *expected =
+		"Expected 'fenced <floats|window> [inside] <desktop|output> <on|off|toggle|reset>'";
+	char *receiver = argv[0], *mode = argv[1], *action = argv[2];
+	if (argc == 4 && strcmp(mode, "inside") == 0) {
+		mode = argv[2];
+		action = argv[3];
+	} else if (argc != 3) {
+		return cmd_results_new(CMD_FAILURE, "fenced", expected);
+	}
+
+	enum fence_modes *operand;
+	if (strcmp(receiver, "floats") == 0) {
+		operand = &config->fence_mode;
+	} else if (strcmp(receiver, "window") == 0) {
+		if (config->reading || !config->active) {
+			return cmd_results_new(CMD_FAILURE, "fenced window",
+				"Can't be used in config file or when sway is not running.");
+		}
+		swayc_t *view = get_focused_container(&root_container);
+		operand = &view->fence_mode;
+	} else {
+		return cmd_results_new(CMD_FAILURE, "fenced", expected);
+	}
+	enum fence_modes new_mode;
+	if (strcmp(action, "reset") == 0) {
+		new_mode = FENCE_UNDEF;
+	} else if (strcmp(action, "off") == 0) {
+		new_mode = FENCE_NONE;
+	} else if (strcmp(mode, "desktop") == 0) {
+		new_mode = FENCE_DESKTOP;
+	} else if (strcmp(mode, "output") == 0) {
+		new_mode = FENCE_OUTPUT;
+	} else {
+		return cmd_results_new(CMD_FAILURE, "fenced", expected);
+	}
+
+	// we need to test all for the sake of syntax checking
+	if (strcmp(action, "on") == 0 || strcmp(action, "off") == 0 || strcmp(action, "reset") == 0) {
+		*operand = new_mode;
+		sway_log(L_DEBUG, "%s now has fence mode: %u (%s)", receiver, *operand, action);
+	} else if (strcmp(action, "toggle") == 0) {
+		if (*operand == FENCE_UNDEF) {
+			// if we toggle a window we expect the opposite mode to kick in, so
+			// since it's undef we set to the opposite of what the config says.
+			*operand = config->fence_mode > FENCE_NONE ? FENCE_NONE : new_mode;
+		} else {
+			*operand = *operand > FENCE_NONE ? FENCE_NONE : new_mode;
+		}
+		sway_log(L_DEBUG, "%s now has fence mode: %u", receiver, *operand);
+	} else {
+		return cmd_results_new(CMD_FAILURE, "fenced", expected);
+	}
 	return cmd_results_new(CMD_SUCCESS, NULL, NULL);
 }
 
@@ -1436,6 +1497,7 @@ static struct cmd_handler handlers[] = {
 	{ "exec", cmd_exec },
 	{ "exec_always", cmd_exec_always },
 	{ "exit", cmd_exit },
+	{ "fenced", cmd_fenced },
 	{ "floating", cmd_floating },
 	{ "floating_modifier", cmd_floating_mod },
 	{ "focus", cmd_focus },

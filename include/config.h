@@ -111,6 +111,7 @@ struct sway_config {
 	uint32_t floating_mod;
 	enum swayc_layouts default_orientation;
 	enum swayc_layouts default_layout;
+	enum fence_modes fence_mode;
 
 	// Flags
 	bool focus_follows_mouse;

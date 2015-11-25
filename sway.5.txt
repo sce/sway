@@ -38,6 +38,14 @@ Commands
 **exit**::
 	Exit sway and end your Wayland session.
 
+**fenced** <floats|window> [inside] <desktop|output> <on|off|toggle|reset>::
+	When _output_ is used, floating windows can not be moved or resized so that a
+	part of their window is outside the output, instead they will stop at the
+	edge. When _desktop_ is used it is still possible to drag floating windows
+	between outputs. This setting can be set globally via _floats_ or per window
+	via _window_. To use the global setting for a window again, use _reset_. (The
+	_inside_ keyword is optional for readability.)
+
 **floating** <enable|disable|toggle>::
 	Make focused view floating, non-floating, or the opposite of what it is now.
 

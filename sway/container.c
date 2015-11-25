@@ -20,6 +20,7 @@ static swayc_t *new_swayc(enum swayc_types type) {
 	c->gaps = -1;
 	c->layout = L_NONE;
 	c->type = type;
+	c->fence_mode = FENCE_UNDEF;
 	if (type != C_VIEW) {
 		c->children = create_list();
 	}
@@ -623,6 +624,18 @@ int swayc_gap(swayc_t *container) {
 		return container->gaps >= 0 ? container->gaps : config->gaps_outer;
 	} else {
 		return 0;
+	}
+}
+
+// There's a global fence mode setting but each container can override that
+// with their own.
+enum fence_modes swayc_fence_mode(swayc_t *container) {
+	if (container->type != C_VIEW) {
+		return FENCE_UNDEF;
+	} else if (container->fence_mode > FENCE_UNDEF) {
+		return container->fence_mode;
+	} else {
+		return config->fence_mode;
 	}
 }
 

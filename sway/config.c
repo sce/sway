@@ -103,6 +103,8 @@ static void config_defaults(struct sway_config *config) {
 	config->floating_mod = 0;
 	config->default_layout = L_NONE;
 	config->default_orientation = L_NONE;
+	config->fence_mode = FENCE_NONE;
+
 	// Flags
 	config->focus_follows_mouse = true;
 	config->mouse_warping = true;

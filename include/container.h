@@ -35,6 +35,16 @@ enum swayc_layouts {
 	L_LAYOUTS,
 };
 
+// Fenced floats. UNDEF and NONE must be the two first ones.
+enum fence_modes {
+	FENCE_UNDEF, // undefined, use from config instead
+	FENCE_NONE, // floating view may be partially outside all outputs
+	FENCE_DESKTOP, // floating view keeps window inside any output
+	FENCE_OUTPUT, // floating view keeps window inside this output
+	// keep this last
+	FENCE_LAST
+};
+
 /**
  * Stores information about a container.
  *
@@ -49,6 +59,8 @@ struct sway_container {
 
 	enum swayc_types type;
 	enum swayc_layouts layout;
+	// Whether the floating view keeps its window inside an output or not
+	enum fence_modes fence_mode;
 
 	/**
 	 * Width and height of this container, without borders or gaps.
@@ -219,7 +231,13 @@ bool swayc_is_child_of(swayc_t *child, swayc_t *parent);
  * 0 otherwise.
  */
 int swayc_gap(swayc_t *container);
-
+/**
+ * Returns the fence mode for this container.
+ *
+ * There's a global fence mode setting but each container can override that
+ * with their own.
+ */
+enum fence_modes swayc_fence_mode(swayc_t *container);
 /**
  * Maps a container's children over a function.
  */
