@@ -14,8 +14,8 @@
 swayc_t root_container;
 list_t *scratchpad;
 
-int min_sane_h = 60;
-int min_sane_w = 100;
+unsigned int min_sane_h = 60;
+unsigned int min_sane_w = 100;
 
 void init_layout(void) {
 	root_container.type = C_ROOT;

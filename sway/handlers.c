@@ -258,23 +258,55 @@ static void handle_view_focus(wlc_handle view, bool focus) {
 }
 
 static void handle_view_geometry_request(wlc_handle handle, const struct wlc_geometry *geometry) {
-	sway_log(L_DEBUG, "geometry request for %ld %dx%d : %dx%d",
+	sway_log(L_DEBUG, "geometry request for %ld %d,%d : %dx%d",
 			handle, geometry->origin.x, geometry->origin.y, geometry->size.w, geometry->size.h);
+	swayc_t *view = swayc_by_handle(handle);
+	if (!view) {
+		// WLC some times improperly sends geometry requests
+		return;
+	}
+	swayc_t *output = swayc_parent_by_type(view, C_OUTPUT);
+	struct wlc_geometry geo = *geometry;
+	if (geo.size.w < min_sane_w || geo.size.w > output->width) {
+		sway_log(L_DEBUG, "View %p:%ld requested bad width %i", view, handle, geo.size.w);
+		geo.size.w = geo.size.w < min_sane_w ? min_sane_w : output->width;
+	}
+	if (geo.size.h < min_sane_h || geo.size.h > output->height) {
+		sway_log(L_DEBUG, "View %p:%ld requested bad height %i", view, handle, geo.size.h);
+		geo.size.h = geo.size.h < min_sane_h ? min_sane_h : output->height;
+	}
+	// make sure at least half of min_sane_w * min_sane_h pixels are actually
+	// inside the output (x,y can be negative)
+	if (geo.origin.x + geo.size.w < min_sane_w / 2 ) {
+		sway_log(L_DEBUG, "View %p:%ld requested bad x-pos %i (width: %i)",
+				view, handle, geo.origin.x, geo.size.w);
+		geo.origin.x = min_sane_w / 2 - geo.size.w;
+	} else if (geo.origin.x + min_sane_w / 2 > output->width) {
+		sway_log(L_DEBUG, "View %p:%ld requested bad x-pos %i (output width: %.0f)",
+				view, handle, geo.origin.x, output->width);
+		geo.origin.x = output->width - min_sane_w / 2;
+	}
+	if (geo.origin.y + geo.size.h < min_sane_h / 2 ) {
+		sway_log(L_DEBUG, "View %p:%ld requested bad y-pos %i (height: %i)",
+				view, handle, geo.origin.y, geo.size.h);
+		geo.origin.y = min_sane_h / 2 - geo.size.h;
+	} else if (geo.origin.y + min_sane_h / 2 > output->height) {
+		sway_log(L_DEBUG, "View %p:%ld requested bad y-pos %i (output height: %.0f)",
+				view, handle, geo.origin.y, output->height);
+		geo.origin.y = output->height - min_sane_h / 2;
+	}
+	// we always do the above checks in order to monitor badly behaving apps / code
 	// If the view is floating, then apply the geometry.
 	// Otherwise save the desired width/height for the view.
-	// This will not do anything for the time being as WLC improperly sends geometry requests
-	swayc_t *view = swayc_by_handle(handle);
-	if (view) {
-		view->desired_width = geometry->size.w;
-		view->desired_height = geometry->size.h;
+	view->desired_width = geo.size.w;
+	view->desired_height = geo.size.h;
 
-		if (view->is_floating) {
-			view->width = view->desired_width;
-			view->height = view->desired_height;
-			view->x = geometry->origin.x;
-			view->y = geometry->origin.y;
-			arrange_windows(view->parent, -1, -1);
-		}
+	if (view->is_floating) {
+		view->width = view->desired_width;
+		view->height = view->desired_height;
+		view->x = geo.origin.x;
+		view->y = geo.origin.y;
+		arrange_windows(view->parent, -1, -1);
 	}
 }
 
