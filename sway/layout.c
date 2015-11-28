@@ -76,7 +76,7 @@ void insert_child(swayc_t *parent, swayc_t *child, int index) {
 }
 
 void add_floating(swayc_t *ws, swayc_t *child) {
-	sway_log(L_DEBUG, "Adding %p (%d, %fx%f) to %p (%d, %fx%f)", child, child->type,
+	sway_log(L_DEBUG, "Adding %p (%d, %fx%f) to %p (%d, %fx%f) as float", child, child->type,
 		child->width, child->height, ws, ws->type, ws->width, ws->height);
 	if (!sway_assert(ws->type == C_WORKSPACE, "Must be of workspace type")) {
 		return;
