@@ -134,6 +134,17 @@ static void handle_output_focused(wlc_handle output, bool focus) {
 	}
 }
 
+static void adj_position_inside_output(swayc_t *view, swayc_t *output) {
+	if (view->x + view->width > output->width) {
+		int pos = output->width - view->width;
+		view->x = pos < 0 ? 0 : pos;
+	}
+	if (view->y + view->height > output->height) {
+		int pos = output->height - view->height;
+		view->y = pos < 0 ? 0 : pos;
+	}
+}
+
 static bool handle_view_created(wlc_handle handle) {
 	// if view is child of another view, the use that as focused container
 	wlc_handle parent = wlc_view_get_parent(handle);
@@ -181,6 +192,8 @@ static bool handle_view_created(wlc_handle handle) {
 			wlc_pointer_get_position(&pointer);
 			newview->x = pointer.x + 16;
 			newview->y = pointer.y + 16;
+			swayc_t *output = swayc_parent_by_type(newview, C_OUTPUT);
+			adj_position_inside_output(newview, output);
 		} else {
 			newview = new_view(focused, handle);
 			wlc_view_set_state(handle, WLC_BIT_MAXIMIZED, true);
