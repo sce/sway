@@ -11,8 +11,8 @@ extern swayc_t root_container;
 
 extern list_t *scratchpad;
 
-extern int min_sane_w;
-extern int min_sane_h;
+extern unsigned int min_sane_w;
+extern unsigned int min_sane_h;
 
 // Set initial values for root_container
 void init_layout(void);

@@ -159,21 +159,32 @@ static bool handle_view_created(wlc_handle handle) {
 			}
 		}
 	}
+	struct wlc_geometry geo = *wlc_view_get_geometry(handle);
 	sway_log(L_DEBUG, "handle:%ld type:%x state:%x parent:%ld "
 			"mask:%d (x:%d y:%d w:%d h:%d) title:%s "
 			"class:%s appid:%s",
 		handle, wlc_view_get_type(handle), wlc_view_get_state(handle), parent,
-		wlc_view_get_mask(handle), wlc_view_get_geometry(handle)->origin.x,
-		wlc_view_get_geometry(handle)->origin.y,wlc_view_get_geometry(handle)->size.w,
-		wlc_view_get_geometry(handle)->size.h, wlc_view_get_title(handle),
-		wlc_view_get_class(handle), wlc_view_get_app_id(handle));
+		wlc_view_get_mask(handle), geo.origin.x, geo.origin.y,geo.size.w,
+		geo.size.h, wlc_view_get_title(handle), wlc_view_get_class(handle),
+		wlc_view_get_app_id(handle));
 
 	// TODO properly figure out how each window should be handled.
 	switch (wlc_view_get_type(handle)) {
 	// regular view created regularly
 	case 0:
-		newview = new_view(focused, handle);
-		wlc_view_set_state(handle, WLC_BIT_MAXIMIZED, true);
+		if (geo.size.w < min_sane_w * 2 || geo.size.h < min_sane_h * 2) {
+			// XXX: This is a workaround, the client/xwayland/wlc is sometimes
+			// creating a popup without the correct type being set.
+			sway_log(L_DEBUG, "-> New view is very small, handling as floating instead.");
+			newview = new_floating_view(handle);
+			struct wlc_point pointer;
+			wlc_pointer_get_position(&pointer);
+			newview->x = pointer.x + 16;
+			newview->y = pointer.y + 16;
+		} else {
+			newview = new_view(focused, handle);
+			wlc_view_set_state(handle, WLC_BIT_MAXIMIZED, true);
+		}
 		break;
 
 	// Dmenu keeps viewfocus, but others with this flag dont, for now simulate
